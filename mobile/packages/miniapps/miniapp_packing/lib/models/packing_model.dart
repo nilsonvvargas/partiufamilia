@@ -2,6 +2,7 @@ class PackingItem {
   final String id;
   final String name;
   final String category;
+  final String member;
   final bool isPacked;
   final int quantity;
 
@@ -9,6 +10,7 @@ class PackingItem {
     required this.id,
     required this.name,
     required this.category,
+    this.member = 'Todos',
     required this.isPacked,
     required this.quantity,
   });
@@ -18,6 +20,7 @@ class PackingItem {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       category: json['category'] ?? 'Geral',
+      member: json['member'] ?? json['assignee'] ?? 'Todos',
       isPacked: json['isPacked'] ?? json['is_packed'] ?? false,
       quantity: json['quantity'] is int ? json['quantity'] : int.tryParse(json['quantity'].toString()) ?? 1,
     );
@@ -27,10 +30,12 @@ class PackingItem {
         'id': id,
         'name': name,
         'category': category,
+        'member': member,
         'isPacked': isPacked,
         'quantity': quantity,
       };
 }
+
 
 class PackingStats {
   final int packedCount;

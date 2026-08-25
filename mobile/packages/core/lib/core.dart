@@ -8,3 +8,4 @@ export 'models/auth_model.dart';
 export 'context/trip_context.dart';
 export 'utils/map_utils.dart';
 export 'utils/share_utils.dart';
+export 'utils/contact_launcher_utils.dart';

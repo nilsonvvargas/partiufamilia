@@ -30,6 +30,7 @@ class PackingService {
   Future<PackingItem?> addItem({
     required String name,
     required String category,
+    String member = 'Todos',
     int quantity = 1,
     String? tripId,
   }) async {
@@ -37,6 +38,7 @@ class PackingService {
     final response = await _bffClient.post('/api/v1/packing', {
       'name': name,
       'category': category,
+      'member': member,
       'quantity': quantity,
       'tripId': effectiveTripId,
     });
@@ -51,12 +53,14 @@ class PackingService {
     required String id,
     required String name,
     required String category,
+    String? member,
     int quantity = 1,
     bool? isPacked,
   }) async {
     final response = await _bffClient.put('/api/v1/packing/$id', {
       'name': name,
       'category': category,
+      if (member != null) 'member': member,
       'quantity': quantity,
       if (isPacked != null) 'isPacked': isPacked,
     });
@@ -66,6 +70,7 @@ class PackingService {
     }
     return null;
   }
+
 
   Future<void> deleteItem(String id) async {
     await _bffClient.delete('/api/v1/packing/$id');

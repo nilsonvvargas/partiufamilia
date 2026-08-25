@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../tokens/colors.dart';
 import '../tokens/typography.dart';
+import '../utils/haptics.dart';
 
 class MaceioButton extends StatelessWidget {
   final String label;
@@ -8,6 +9,7 @@ class MaceioButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isSecondary;
   final bool isLoading;
+  final Color? customColor;
 
   const MaceioButton({
     super.key,
@@ -16,15 +18,22 @@ class MaceioButton extends StatelessWidget {
     this.onPressed,
     this.isSecondary = false,
     this.isLoading = false,
+    this.customColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = isSecondary ? MaceioColors.oceanLight : MaceioColors.turquoisePrimary;
-    final fgColor = isSecondary ? MaceioColors.turquoiseDark : Colors.white;
+    final primaryColor = customColor ?? MaceioColors.turquoisePrimary;
+    final bgColor = isSecondary ? (customColor != null ? customColor!.withValues(alpha: 0.12) : MaceioColors.oceanLight) : primaryColor;
+    final fgColor = isSecondary ? primaryColor : Colors.white;
 
     return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: isLoading || onPressed == null
+          ? null
+          : () {
+              AppHaptics.light();
+              onPressed!();
+            },
       style: ElevatedButton.styleFrom(
         backgroundColor: bgColor,
         foregroundColor: fgColor,

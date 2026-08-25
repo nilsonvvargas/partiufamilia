@@ -332,6 +332,7 @@ class _ContactsViewState extends State<ContactsView> {
                     itemBuilder: (context, index) {
                       final item = contacts[index];
                       final isEmergency = item.role == 'Emergência';
+                      final hasWhatsApp = item.whatsapp.isNotEmpty;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -358,7 +359,13 @@ class _ContactsViewState extends State<ContactsView> {
                                       children: [
                                         Text(item.name, style: MaceioTypography.titleMedium),
                                         const SizedBox(height: 2),
-                                        Text(item.role, style: MaceioTypography.caption.copyWith(color: MaceioColors.turquoiseDark, fontWeight: FontWeight.w600)),
+                                        Text(
+                                          item.role,
+                                          style: MaceioTypography.caption.copyWith(
+                                            color: isEmergency ? MaceioColors.error : MaceioColors.turquoiseDark,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -366,6 +373,7 @@ class _ContactsViewState extends State<ContactsView> {
                                     icon: const Icon(Icons.copy, size: 18, color: MaceioColors.textMuted),
                                     tooltip: 'Copiar Telefone',
                                     onPressed: () {
+                                      AppHaptics.light();
                                       Clipboard.setData(ClipboardData(text: item.phone));
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(content: Text('Telefone de ${item.name} copiado!')),
@@ -412,7 +420,7 @@ class _ContactsViewState extends State<ContactsView> {
                                   children: [
                                     const Icon(Icons.location_on_outlined, size: 14, color: MaceioColors.textMuted),
                                     const SizedBox(width: 4),
-                                    Text(item.location, style: MaceioTypography.caption),
+                                    Expanded(child: Text(item.location, style: MaceioTypography.caption)),
                                   ],
                                 ),
                               ],
@@ -420,23 +428,52 @@ class _ContactsViewState extends State<ContactsView> {
                                 const SizedBox(height: 6),
                                 Text(item.notes, style: MaceioTypography.bodyMedium),
                               ],
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 14),
+
+                              // Quick Action Buttons: WhatsApp & Phone Call
                               Row(
                                 children: [
+                                  if (hasWhatsApp) ...[
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: MaceioColors.palmGreen,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                        icon: const Icon(Icons.chat, size: 16),
+                                        label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                        onPressed: () {
+                                          AppHaptics.medium();
+                                          final dest = activeTrip?.destination ?? 'Maceió';
+                                          ContactLauncherUtils.openWhatsApp(
+                                            phoneOrNumber: item.whatsapp,
+                                            text: 'Olá ${item.name}! Sou do grupo da viagem em família para $dest.',
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                  ],
                                   Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: MaceioColors.surfaceElevated,
-                                        borderRadius: BorderRadius.circular(8),
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: isEmergency ? MaceioColors.error : MaceioColors.oceanDeep,
+                                        side: BorderSide(
+                                          color: isEmergency
+                                              ? MaceioColors.error
+                                              : MaceioColors.oceanDeep.withValues(alpha: 0.4),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.phone, size: 16, color: MaceioColors.oceanDeep),
-                                          const SizedBox(width: 8),
-                                          Text(item.phone, style: MaceioTypography.titleMedium.copyWith(fontSize: 13)),
-                                        ],
-                                      ),
+                                      icon: Icon(Icons.phone, size: 16, color: isEmergency ? MaceioColors.error : MaceioColors.oceanDeep),
+                                      label: const Text('Ligar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      onPressed: () {
+                                        AppHaptics.medium();
+                                        ContactLauncherUtils.makePhoneCall(item.phone);
+                                      },
                                     ),
                                   ),
                                 ],
@@ -473,3 +510,4 @@ class _ContactsViewState extends State<ContactsView> {
     }
   }
 }
+

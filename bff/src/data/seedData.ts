@@ -72,10 +72,12 @@ export interface PackingItem {
   id: string;
   tripId?: string;
   name: string;
-  category: 'Praia & Sol' | 'Roupas' | 'Documentos' | 'Farmácia' | 'Eletrônicos';
+  category: 'Praia & Sol' | 'Roupas' | 'Documentos' | 'Farmácia' | 'Eletrônicos' | string;
+  member?: string;
   isPacked: boolean;
   quantity: number;
 }
+
 
 export interface ContactItem {
   id: string;

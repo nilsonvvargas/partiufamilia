@@ -23,6 +23,7 @@ packingRouter.get('/', async (req: Request, res: Response) => {
         tripId: item.trip_id ?? item.tripId,
         name: item.name,
         category: item.category,
+        member: item.member ?? 'Todos',
         isPacked: item.is_packed ?? item.isPacked,
         quantity: item.quantity ?? 1
       }));
@@ -70,7 +71,7 @@ packingRouter.get('/', async (req: Request, res: Response) => {
 
 // POST new packing item
 packingRouter.post('/', async (req: Request, res: Response) => {
-  const { name, category, quantity, tripId } = req.body;
+  const { name, category, quantity, member, tripId } = req.body;
   if (!name || !category) {
     return res.status(400).json({ success: false, message: 'Nome e categoria são obrigatórios' });
   }
@@ -80,6 +81,7 @@ packingRouter.post('/', async (req: Request, res: Response) => {
     tripId: tripId || 'trip-maceio',
     name,
     category,
+    member: member || 'Todos',
     isPacked: false,
     quantity: quantity ? parseInt(quantity) : 1
   };
@@ -92,6 +94,7 @@ packingRouter.post('/', async (req: Request, res: Response) => {
       trip_id: newItem.tripId,
       name: newItem.name,
       category: newItem.category,
+      member: newItem.member,
       is_packed: false,
       quantity: newItem.quantity
     }]);
@@ -105,7 +108,7 @@ packingRouter.post('/', async (req: Request, res: Response) => {
 // PUT update packing item
 packingRouter.put('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, category, quantity, isPacked } = req.body;
+  const { name, category, quantity, member, isPacked } = req.body;
 
   const itemIndex = packingList.findIndex(p => p.id === id);
   if (itemIndex === -1) {
@@ -116,6 +119,7 @@ packingRouter.put('/:id', async (req: Request, res: Response) => {
     ...packingList[itemIndex],
     ...(name && { name }),
     ...(category && { category }),
+    ...(member && { member }),
     ...(quantity !== undefined && { quantity: parseInt(quantity) }),
     ...(isPacked !== undefined && { isPacked })
   };
@@ -126,6 +130,7 @@ packingRouter.put('/:id', async (req: Request, res: Response) => {
     await supabase.from('packing_items').update({
       name: updated.name,
       category: updated.category,
+      member: updated.member,
       quantity: updated.quantity,
       is_packed: updated.isPacked
     }).eq('id', id);
@@ -135,6 +140,7 @@ packingRouter.put('/:id', async (req: Request, res: Response) => {
 
   return res.json({ success: true, data: updated });
 });
+
 
 // DELETE packing item
 packingRouter.delete('/:id', async (req: Request, res: Response) => {

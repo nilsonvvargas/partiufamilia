@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 class BffClient {
   final String baseUrl;
   final http.Client _client;
+  static final Map<String, dynamic> _cache = {};
 
   BffClient({
     String? baseUrl,
@@ -22,12 +23,19 @@ class BffClient {
     debugPrint('[BFF GET] $uri');
     try {
       final response = await _client.get(uri, headers: _headers);
-      return _handleResponse(response);
+      final result = _handleResponse(response);
+      _cache[path] = result;
+      return result;
     } catch (e) {
       debugPrint('[BFF GET ERROR] $e');
+      if (_cache.containsKey(path)) {
+        debugPrint('[BFF OFFLINE CACHE HIT] Serving cached data for $path');
+        return _cache[path];
+      }
       rethrow;
     }
   }
+
 
   Future<dynamic> post(String path, Map<String, dynamic> body) async {
     final uri = Uri.parse('$baseUrl$path');
