@@ -41,7 +41,11 @@ app.use('/api/v1/stay', stayRouter);
 app.use('/api/v1/packing', packingRouter);
 app.use('/api/v1/contacts', contactsRouter);
 
-app.listen(port, () => {
-  console.log(`🚀 Família Partiu BFF rodando com sucesso na porta ${port}`);
-  console.log(`📡 Endpoints disponíveis: http://localhost:${port}/api/v1/trips`);
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => {
+    console.log(`🚀 Família Partiu BFF rodando com sucesso na porta ${port}`);
+    console.log(`📡 Endpoints disponíveis: http://localhost:${port}/api/v1/trips`);
+  });
+}
+
+export default app;

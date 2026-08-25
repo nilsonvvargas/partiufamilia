@@ -1,0 +1,22 @@
+{
+  "name": "partiufamilia",
+  "version": "1.0.0",
+  "description": "Família Partiu - Travel Hub App & BFF",
+  "main": "api/index.ts",
+  "scripts": {
+    "build": "cd bff && npm install && npm run build",
+    "start": "cd bff && npm start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.4",
+    "typescript": "^5.7.3"
+  }
+}
