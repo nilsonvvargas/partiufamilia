@@ -1,0 +1,37 @@
+name: app_host
+description: Shell App e agregador de MiniApps para Viagem Maceio.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  intl: ^0.19.0
+  url_launcher: ^6.3.0
+  core:
+    path: ../packages/core
+  design_system:
+    path: ../packages/design_system
+  miniapp_itinerary:
+    path: ../packages/miniapps/miniapp_itinerary
+  miniapp_expenses:
+    path: ../packages/miniapps/miniapp_expenses
+  miniapp_dining:
+    path: ../packages/miniapps/miniapp_dining
+  miniapp_stay:
+    path: ../packages/miniapps/miniapp_stay
+  miniapp_packing:
+    path: ../packages/miniapps/miniapp_packing
+  miniapp_contacts:
+    path: ../packages/miniapps/miniapp_contacts
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,22 @@
+name: miniapp_expenses
+description: MiniApp de Gestao Financeira e Divisao de Gastos em Maceio.
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  intl: ^0.19.0
+  core:
+    path: ../../core
+  design_system:
+    path: ../../design_system
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
