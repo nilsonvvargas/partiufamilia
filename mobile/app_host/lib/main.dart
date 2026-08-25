@@ -20,14 +20,19 @@ import 'dart:ui';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Inicializa Core & BFF Client com deteccao dinamica de IP para acesso mobile
+  // 1. Inicializa Core & BFF Client com detecção dinâmica (Produção HTTPS / Rede Local / Dev)
   String baseUrl = 'http://localhost:3001';
   if (kIsWeb) {
-    final currentHost = Uri.base.host;
-    if (currentHost.isNotEmpty && currentHost != 'localhost') {
-      baseUrl = 'http://$currentHost:3001';
+    final uri = Uri.base;
+    if (uri.scheme == 'https' || uri.host.contains('vercel.app')) {
+      // Produção na Nuvem (Vercel HTTPS): mesma origem segura
+      baseUrl = '${uri.scheme}://${uri.host}';
+    } else if (uri.host.isNotEmpty && uri.host != 'localhost') {
+      // Rede Local / Celular no Wi-Fi
+      baseUrl = 'http://${uri.host}:3001';
     } else {
-      baseUrl = 'http://192.168.15.49:3001';
+      // Localhost
+      baseUrl = 'http://localhost:3001';
     }
   } else {
     baseUrl = 'http://192.168.15.49:3001';
