@@ -475,9 +475,10 @@ class _PackingViewState extends State<PackingView> {
                       ? allItems
                       : allItems.where((i) => i.member.toLowerCase() == _selectedMemberFilter.toLowerCase() || i.member == 'Todos').toList();
 
-                  final memberPackedCount = filteredItems.filter((i) => i.isPacked).length;
+                  final memberPackedCount = filteredItems.where((i) => i.isPacked).length;
                   final memberTotalCount = filteredItems.length;
                   final memberPercentage = memberTotalCount > 0 ? ((memberPackedCount / memberTotalCount) * 100).round() : 0;
+
 
                   // Group items by category
                   final grouped = <String, List<PackingItem>>{};
