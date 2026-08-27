@@ -82,4 +82,24 @@ class DiningService {
   Future<void> updateStatus(String id, String newStatus) async {
     await _bffClient.patch('/api/v1/dining/$id/status', {'status': newStatus});
   }
+
+  Future<List<Map<String, dynamic>>> getAiRecommendations({
+    required int dayNumber,
+    required String destination,
+    String state = '',
+    List<dynamic> activities = const [],
+  }) async {
+    try {
+      final response = await _bffClient.post('/api/v1/ai/dining-recommendations', {
+        'destination': destination,
+        'state': state,
+        'dayNumber': dayNumber,
+        'activities': activities,
+      });
+      if (response != null && response['data'] is List) {
+        return List<Map<String, dynamic>>.from(response['data']);
+      }
+    } catch (_) {}
+    return [];
+  }
 }

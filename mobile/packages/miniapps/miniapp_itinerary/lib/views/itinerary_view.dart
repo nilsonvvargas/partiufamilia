@@ -3,7 +3,6 @@ import 'package:flutter/gestures.dart';
 import 'package:core/core.dart';
 import 'package:design_system/design_system.dart';
 import '../models/itinerary_model.dart';
-import '../models/trip_day_info.dart';
 import '../services/itinerary_service.dart';
 
 class ItineraryView extends StatefulWidget {
@@ -56,12 +55,53 @@ class _ItineraryViewState extends State<ItineraryView> {
       );
     }
     _selectedDayNumber = 1;
+    _loadWeather();
+  }
+
+  Future<void> _loadWeather() async {
+    try {
+      final activeTrip = TripContext.instance.activeTrip;
+      final city = activeTrip?.destination ?? 'Maceió';
+      final state = activeTrip?.state ?? 'Alagoas';
+      final bff = ServiceLocator.instance.get<BffClient>();
+      final res = await bff.get('/api/v1/weather?city=$city&state=$state');
+      if (res != null && res['data'] != null) {
+        final daily = (res['data']['daily'] as List<dynamic>?) ?? [];
+        if (daily.isNotEmpty && mounted) {
+          setState(() {
+            _tripDays = _tripDays.map((day) {
+              var match = daily.firstWhere(
+                (d) => d['date'] == day.isoDate,
+                orElse: () => null,
+              );
+              if (match == null && day.dayNumber <= daily.length) {
+                match = daily[day.dayNumber - 1];
+              }
+
+              if (match != null) {
+                return day.copyWithWeather(
+                  maxTemp: match['maxTemp'],
+                  minTemp: match['minTemp'],
+                  weatherCondition: match['condition'],
+                  weatherIcon: match['icon'],
+                  rainProbability: match['precipitationProbability'] != null
+                      ? (match['precipitationProbability'] as num).toInt()
+                      : null,
+                );
+              }
+              return day;
+            }).toList();
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   void _loadData() {
     setState(() {
       _itinerariesFuture = _service.getItineraries();
     });
+    _loadWeather();
   }
 
   TripDayInfo get _currentDayInfo {
@@ -461,7 +501,7 @@ class _ItineraryViewState extends State<ItineraryView> {
   // 1. Barra de Navegação de Dias Estilo iFood
   Widget _buildIfoodDaySelector() {
     return Container(
-      height: 72,
+      height: 78,
       decoration: BoxDecoration(
         color: MaceioColors.surface,
         border: Border(
@@ -477,7 +517,7 @@ class _ItineraryViewState extends State<ItineraryView> {
       ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _tripDays.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
@@ -492,7 +532,7 @@ class _ItineraryViewState extends State<ItineraryView> {
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? const LinearGradient(
@@ -533,11 +573,29 @@ class _ItineraryViewState extends State<ItineraryView> {
                   Text(
                     '${dayInfo.dateShort} (${dayInfo.weekdayShort})',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : MaceioColors.textPrimary,
                     ),
                   ),
+                  if (dayInfo.maxTemp != null) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(dayInfo.weatherIcon ?? '☀️', style: const TextStyle(fontSize: 10)),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${dayInfo.maxTemp}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : MaceioColors.turquoiseDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -613,6 +671,63 @@ class _ItineraryViewState extends State<ItineraryView> {
                   valueColor: const AlwaysStoppedAnimation<Color>(MaceioColors.sunYellow),
                 ),
               ),
+
+              // Previsão do Tempo do Dia Selecionado
+              if (currentDay.maxTemp != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(currentDay.weatherIcon ?? '☀️', style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  currentDay.weatherCondition ?? 'Tempo Bom',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  '${currentDay.minTemp} a ${currentDay.maxTemp}',
+                                  style: const TextStyle(
+                                    color: MaceioColors.sunYellow,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              currentDay.rainProbability != null && currentDay.rainProbability! > 0
+                                  ? '🌧️ ${currentDay.rainProbability}% de probabilidade de chuva'
+                                  : '☀️ Dia favorável para passeios ao ar livre',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -680,6 +795,11 @@ class _ItineraryViewState extends State<ItineraryView> {
               index: index,
             );
           }),
+
+          const SizedBox(height: 16),
+
+          // Banner Inteligente de Restaurantes da IA
+          _buildDiningSuggestionsPrompt(items),
         ],
       ],
     );
@@ -1083,7 +1203,7 @@ class _ItineraryViewState extends State<ItineraryView> {
                                 fontSize: 13,
                               ),
                             ),
-                          ),
+),
                           Row(
                             children: [
                               IconButton(
@@ -1108,6 +1228,259 @@ class _ItineraryViewState extends State<ItineraryView> {
           ),
         ],
       ),
+    );
+  }
+
+  // 4. Banner e Drawer de Onde Comer no Dia com Gemini IA
+  Widget _buildDiningSuggestionsPrompt(List<ItineraryItem> dayItems) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: MaceioColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: MaceioColors.coralAccent.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: MaceioColors.coralAccent.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: MaceioColors.coralLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.restaurant, color: MaceioColors.coralAccent, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Onde Comer Perto das Atrações? 🍽️',
+                      style: MaceioTypography.titleMedium.copyWith(fontSize: 14),
+                    ),
+                    Text(
+                      'Sugestões da IA baseadas nos passeios do Dia $_selectedDayNumber',
+                      style: MaceioTypography.caption.copyWith(color: MaceioColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: MaceioColors.coralAccent),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.auto_awesome, color: MaceioColors.coralAccent, size: 16),
+              label: const Text(
+                'Ver Restaurantes Recomendados pela IA ⚡',
+                style: TextStyle(color: MaceioColors.coralAccent, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              onPressed: () => _showAiDiningDrawer(dayItems),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAiDiningDrawer(List<ItineraryItem> dayItems) {
+    AppHaptics.light();
+    final activeTrip = TripContext.instance.activeTrip;
+    final destination = activeTrip?.destination ?? 'Maceió';
+    final state = activeTrip?.state ?? 'Alagoas';
+    final bff = ServiceLocator.instance.get<BffClient>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return FutureBuilder<dynamic>(
+          future: bff.post('/api/v1/ai/dining-recommendations', {
+            'destination': destination,
+            'state': state,
+            'dayNumber': _selectedDayNumber,
+            'activities': dayItems.map((i) => {'title': i.title, 'location': i.location, 'tag': i.tag}).toList(),
+          }),
+          builder: (context, snapshot) {
+            final isLoading = snapshot.connectionState == ConnectionState.waiting;
+            final recs = (snapshot.data?['data'] as List<dynamic>?) ?? [];
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: MaceioColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const CircleAvatar(
+                        backgroundColor: MaceioColors.coralLight,
+                        child: Icon(Icons.auto_awesome, color: MaceioColors.coralAccent),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Restaurantes Recomendados pela IA', style: MaceioTypography.titleLarge),
+                            Text('Perto do seu roteiro no Dia $_selectedDayNumber', style: MaceioTypography.caption),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (isLoading) ...[
+                    const Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(color: MaceioColors.coralAccent),
+                            SizedBox(height: 12),
+                            Text('A IA está selecionando os melhores restaurantes no caminho...', style: TextStyle(color: MaceioColors.textMuted)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else if (recs.isEmpty) ...[
+                    const Expanded(
+                      child: Center(child: Text('Nenhuma sugestão encontrada.')),
+                    ),
+                  ] else ...[
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: recs.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final rec = recs[index];
+                          final name = rec['name'] ?? 'Restaurante';
+                          final specialty = rec['specialty'] ?? '';
+                          final cuisine = rec['cuisine'] ?? 'Regional';
+                          final address = rec['address'] ?? '';
+                          final rating = rec['rating'] ?? 4.8;
+                          final price = rec['priceLevel'] ?? r'$$';
+                          final reason = rec['reason'] ?? '';
+                          final meal = rec['suggestedMeal'] ?? 'Jantar';
+                          final time = rec['suggestedTime'] ?? '20:00';
+                          final icon = rec['icon'] ?? '🍽️';
+
+                          return Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: MaceioColors.surfaceElevated,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: MaceioColors.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(icon, style: const TextStyle(fontSize: 24)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(name, style: MaceioTypography.titleMedium.copyWith(fontSize: 15)),
+                                          Text('$cuisine • $address', style: MaceioTypography.caption),
+                                        ],
+                                      ),
+                                    ),
+                                    Text('⭐ $rating • $price', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                if (specialty.isNotEmpty)
+                                  Text('Prato: $specialty', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: MaceioColors.turquoiseDark)),
+                                const SizedBox(height: 4),
+                                Text(reason, style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontStyle: FontStyle.italic)),
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: MaceioColors.coralAccent,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                    ),
+                                    icon: const Icon(Icons.add_task, color: Colors.white, size: 16),
+                                    label: Text(
+                                      'Inserir na Trilha às $time ($meal) ⚡',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                    onPressed: () async {
+                                      Navigator.pop(context);
+                                      await _service.addItinerary(
+                                        title: '$name ($meal)',
+                                        day: _selectedDayNumber,
+                                        location: address,
+                                        description: 'Prato: $specialty. $reason',
+                                        time: time,
+                                        tag: 'Gastronomia & Restaurante 🍽️',
+                                        imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
+                                        date: _currentDayInfo.dateShort,
+                                      );
+                                      _loadData();
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(this.context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('"$name" adicionado à trilha do Dia $_selectedDayNumber! 🎉'),
+                                            backgroundColor: MaceioColors.palmGreen,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

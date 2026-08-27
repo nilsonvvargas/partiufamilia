@@ -10,6 +10,7 @@ import {
   initialContacts
 } from '../../data/seedData';
 import { supabase } from '../../config/supabase';
+import { WeatherService } from '../weather/weather.service';
 
 export const tripsRouter = Router();
 
@@ -542,6 +543,14 @@ tripsRouter.get('/:id/dashboard', async (req: Request, res: Response) => {
   const nextTour = itinerariesList.find(i => i.status !== 'completed') || itinerariesList[0] || null;
   const nextDinner = diningList[0] || null;
 
+  // Real-time and daily weather for destination
+  let weatherData: any = null;
+  try {
+    weatherData = await WeatherService.getWeatherForDestination(currentTrip.destination, currentTrip.state);
+  } catch (we) {
+    console.warn('Weather fetch error in dashboard:', (we as Error).message);
+  }
+
   return res.json({
     success: true,
     data: {
@@ -551,11 +560,13 @@ tripsRouter.get('/:id/dashboard', async (req: Request, res: Response) => {
         state: currentTrip.state,
         title: currentTrip.title,
         tripDates: currentTrip.tripDates,
-        weather: {
+        weather: weatherData?.current || {
           temp: '29°C',
           condition: 'Ensolarado',
-          waterTemp: '27°C'
-        }
+          waterTemp: '27°C',
+          icon: '☀️'
+        },
+        dailyWeather: weatherData?.daily || []
       },
       staySnapshot: stayData,
       nextTour,

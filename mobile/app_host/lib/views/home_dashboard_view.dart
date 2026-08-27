@@ -59,6 +59,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> {
               final data = snapshot.data?['data'] ?? {};
               final dest = data['destination'] ?? {};
               final weather = dest['weather'] ?? {};
+              final dailyWeather = (dest['dailyWeather'] as List<dynamic>?) ?? [];
               final stay = data['staySnapshot'];
               final nextTour = data['nextTour'];
               final stats = data['stats'] ?? {};
@@ -162,7 +163,10 @@ class _HomeDashboardViewState extends State<HomeDashboardView> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.wb_sunny, color: MaceioColors.sunYellow, size: 15),
+                                  Text(
+                                    weather['icon'] ?? '☀️',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
                                   const SizedBox(width: 5),
                                   Text(
                                     weather['temp'] ?? '28°C',
@@ -285,6 +289,16 @@ class _HomeDashboardViewState extends State<HomeDashboardView> {
                       _buildModuleButton('Mala Familiar', Icons.luggage, MaceioColors.palmGreen, () => widget.onNavigateToTab(5)),
                       _buildModuleButton('Contatos', Icons.people, theme.primaryDark, () => widget.onNavigateToTab(6)),
                     ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Previsão do Tempo & Clima em Tempo Real
+                  _buildWeatherSection(
+                    theme: theme,
+                    weather: weather,
+                    dailyWeather: dailyWeather,
+                    destination: activeTrip?.destination ?? dest['city'] ?? 'Destino',
                   ),
 
                   const SizedBox(height: 20),
@@ -517,6 +531,237 @@ class _HomeDashboardViewState extends State<HomeDashboardView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWeatherSection({
+    required TripThemePalette theme,
+    required Map<String, dynamic> weather,
+    required List<dynamic> dailyWeather,
+    required String destination,
+  }) {
+    final temp = weather['temp'] ?? '28°C';
+    final condition = weather['condition'] ?? 'Ensolarado';
+    final icon = weather['icon'] ?? '☀️';
+    final apparent = weather['apparentTemp'] ?? temp;
+    final humidity = weather['humidity'] ?? '70%';
+    final wind = weather['windSpeed'] ?? '15 km/h';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Clima & Previsão no Destino', style: MaceioTypography.titleMedium),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: theme.accentLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: MaceioColors.palmGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Ao Vivo',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: theme.accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.primary.withValues(alpha: 0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Live Weather Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(icon, style: const TextStyle(fontSize: 38)),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              temp,
+                              style: MaceioTypography.display.copyWith(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: theme.primaryDark,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '• $destination',
+                              style: MaceioTypography.titleMedium.copyWith(
+                                color: theme.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          condition,
+                          style: MaceioTypography.caption.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.alt_route, color: theme.primary),
+                    tooltip: 'Ver no Roteiro',
+                    onPressed: () {
+                      AppHaptics.light();
+                      widget.onNavigateToTab(1);
+                    },
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Metrics Chips
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _buildWeatherMetricBadge('Sensação', apparent, Icons.thermostat, theme),
+                  _buildWeatherMetricBadge('Umidade', humidity, Icons.water_drop_outlined, theme),
+                  _buildWeatherMetricBadge('Vento', wind, Icons.air, theme),
+                ],
+              ),
+
+              if (dailyWeather.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                Text(
+                  'Previsão para os Próximos Dias',
+                  style: MaceioTypography.caption.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 88,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: dailyWeather.length > 7 ? 7 : dailyWeather.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final item = dailyWeather[index];
+                      final dStr = item['date'] ?? '';
+                      String dayLabel = 'Dia ${index + 1}';
+                      try {
+                        final dt = DateTime.parse(dStr);
+                        const wk = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+                        dayLabel = '${dt.day}/${dt.month} (${wk[dt.weekday - 1]})';
+                        if (index == 0) dayLabel = 'Hoje';
+                        if (index == 1) dayLabel = 'Amanhã';
+                      } catch (_) {}
+
+                      return Container(
+                        width: 90,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: MaceioColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: MaceioColors.border),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              dayLabel,
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(item['icon'] ?? '☀️', style: const TextStyle(fontSize: 18)),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item['maxTemp'] ?? ''}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                            if (item['precipitationProbability'] != null && (item['precipitationProbability'] as num) > 0)
+                              Text(
+                                '${item['precipitationProbability']}% 💧',
+                                style: const TextStyle(fontSize: 9, color: MaceioColors.oceanDeep, fontWeight: FontWeight.w600),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeatherMetricBadge(String label, String value, IconData icon, TripThemePalette theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: MaceioColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: MaceioColors.border.withValues(alpha: 0.7)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: theme.secondary),
+          const SizedBox(width: 4),
+          Text(
+            '$label: ',
+            style: const TextStyle(fontSize: 11, color: MaceioColors.textMuted),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: MaceioColors.textPrimary),
+          ),
+        ],
       ),
     );
   }

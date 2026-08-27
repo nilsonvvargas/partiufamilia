@@ -10,6 +10,8 @@ import { stayRouter } from './modules/stay/stay.router';
 import { packingRouter } from './modules/packing/packing.router';
 import { contactsRouter } from './modules/contacts/contacts.router';
 import { dashboardRouter } from './modules/dashboard/dashboard.router';
+import { weatherRouter } from './modules/weather/weather.router';
+import { aiRouter } from './modules/ai/ai.router';
 
 dotenv.config();
 
@@ -40,6 +42,8 @@ app.use('/api/v1/dining', diningRouter);
 app.use('/api/v1/stay', stayRouter);
 app.use('/api/v1/packing', packingRouter);
 app.use('/api/v1/contacts', contactsRouter);
+app.use('/api/v1/weather', weatherRouter);
+app.use('/api/v1/ai', aiRouter);
 
 if (process.env.VERCEL !== '1') {
   app.listen(port, () => {
